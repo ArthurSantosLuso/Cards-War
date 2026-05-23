@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 1399926063916778706}
   - component: {fileID: 205344689334522271}
   - component: {fileID: 2852552530098350580}
-  - component: {fileID: -2974751003314937993}
   m_Layer: 0
   m_Name: Player 1
   m_TagString: Untagged
@@ -178,17 +177,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1bfa5190cd0034d43ba29333433f380d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
-  ShowTopMostFoldoutHeaderGroup: 1
---- !u!114 &-2974751003314937993
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4289718201920169257}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 705cc1c3b84032042a426e7af38eca00, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerColorSync
   ShowTopMostFoldoutHeaderGroup: 1
