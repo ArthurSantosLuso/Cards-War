@@ -14,7 +14,6 @@ public class Character : NetworkBehaviour
 
     protected virtual void Start()
     {
-        // animator = GetComponent<Animator>();
         networkObject = GetComponent<NetworkObject>();
     }
 }

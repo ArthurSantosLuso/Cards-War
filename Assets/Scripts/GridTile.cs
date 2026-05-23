@@ -1,18 +1,31 @@
+using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.EventSystems;
 
-public sealed class GridTile : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+public sealed class GridTile : NetworkBehaviour
 {
+    [Header("Grid Info")]
+    [SerializeField] private int tileIdx;
+
     private Animator _fillAnimator;
     private static readonly int ActiveHash = Animator.StringToHash("Active");
 
+    public int OwnerID { get; private set; }
+
     private void Awake()
     {
-        _fillAnimator = GetComponentInChildren<Animator>();
+        _fillAnimator = GetComponentInChildren<Animator>() ?? GetComponent<Animator>();
     }
 
-    void IPointerEnterHandler.OnPointerEnter(PointerEventData _) => SetActive(true);
-    void IPointerExitHandler.OnPointerExit(PointerEventData _) => SetActive(false);
+    public void SetHoverActive(bool state)
+    {
+        Debug.Log($"hover({name}) = {state}");
+        if (!IsClient) return;
 
-    private void SetActive(bool state) => _fillAnimator.SetBool(ActiveHash, state);
+        _fillAnimator?.SetBool(ActiveHash, state);
+    }
+
+    public void SetOwner(int id)
+    {
+        OwnerID = id;
+    }
 }

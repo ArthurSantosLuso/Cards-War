@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
@@ -18,6 +18,8 @@ using Unity.Services.Core;
 using Unity.Services.Authentication;
 using System.Threading.Tasks;
 using Unity.Services.Relay.Models;
+using Unity.VisualScripting;
+
 
 
 #if UNITY_STANDALONE_WIN
@@ -29,11 +31,11 @@ using Debug = UnityEngine.Debug;
 
 public class NetworkSetup : MonoBehaviour
 {
-    [SerializeField] private List<Transform>    playerSpawnLocations;
-    [SerializeField] private List<PlayerController>       playerPrefabs;
-    [SerializeField] private TextMeshProUGUI    textJoinCode;
-    [SerializeField] private int                maxPlayers = 2;
-    [SerializeField] private string             joinCode = "";
+    [SerializeField] private List<Transform> playerSpawnLocations;
+    [SerializeField] private List<PlayerController> playerPrefabs;
+    [SerializeField] private TextMeshProUGUI textJoinCode;
+    [SerializeField] private int maxPlayers = 2;
+    [SerializeField] private string joinCode = "";
 
 
     public class RelayHostData
@@ -224,34 +226,36 @@ public class NetworkSetup : MonoBehaviour
     {
         if (!NetworkManager.Singleton.IsServer) return;
 
-        UnityEngine.Debug.Log($"Player {clientId} connected, prefab index = {playerPrefabIndex}!");
+        Debug.Log($"Player {clientId} connected, prefab index = {playerPrefabIndex}!");
 
-        // Check a free spot for this player
+        // Find a free spawn point far enough from existing players.
         var spawnPos = Vector3.zero;
         var currentPlayers = FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
-        foreach (var playerSpawnLocation in playerSpawnLocations)
+        foreach (var spawnLocation in playerSpawnLocations)
         {
-            var closestDist = float.MaxValue;
+            float closestDist = float.MaxValue;
             foreach (var player in currentPlayers)
+                closestDist = Mathf.Min(closestDist, Vector3.Distance(player.transform.position, spawnLocation.position));
+
+            if (closestDist > 20f)
             {
-                float d = Vector3.Distance(player.transform.position, playerSpawnLocation.position);
-                closestDist = Mathf.Min(closestDist, d);
-            }
-            if (closestDist > 20)
-            {
-                spawnPos = playerSpawnLocation.position;
+                spawnPos = spawnLocation.position;
                 break;
             }
         }
-        // Spawn player object
+
         var spawnedObject = Instantiate(playerPrefabs[playerPrefabIndex], spawnPos, Quaternion.identity);
-        var prefabNetworkObject = spawnedObject.GetComponent<NetworkObject>();
-        // It is a player object, Unity needs to know this
-        prefabNetworkObject.SpawnAsPlayerObject(clientId, true);
-        // Now the ownership of this object is no longer the server, but the client that just connected
-        prefabNetworkObject.ChangeOwnership(clientId);
+        var networkObject = spawnedObject.GetComponent<NetworkObject>();
+        networkObject.SpawnAsPlayerObject(clientId, true);
+        networkObject.ChangeOwnership(clientId);
+
+        // ── FIX: server authoritatively assigns the player index ──────────
+        spawnedObject.SetPlayerIndex(playerPrefabIndex);
+        // ──────────────────────────────────────────────────────────────────
+
         playerPrefabIndex = (playerPrefabIndex + 1) % playerPrefabs.Count;
     }
+
     private void OnClientDisconnected(ulong clientId)
     {
         UnityEngine.Debug.Log($"Player {clientId} disconnected!");
