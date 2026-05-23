@@ -1,16 +1,21 @@
+using UnityEditor.AdaptivePerformance.Editor;
 using UnityEngine;
 
-public class CardInstance : MonoBehaviour
+[System.Serializable]
+public class CardInstance
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
+    public int InstanceId;
 
-    // Update is called once per frame
-    void Update()
+    public int CardId;
+
+    public ulong OwnerClientId;
+
+    public int CurrentCost;
+
+    public CardInstance(int instanceId, int cardId, ulong owner)
     {
-        
+        InstanceId = instanceId;
+        CardId = cardId;
+        OwnerClientId = owner;
     }
 }

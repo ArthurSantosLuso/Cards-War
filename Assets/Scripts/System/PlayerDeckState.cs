@@ -1,16 +1,11 @@
-using UnityEngine;
+using System.Collections.Generic;
 
-public class PlayerDeckState : MonoBehaviour
+public class PlayerDeckState
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
+    public List<CardInstance> Hand = new List<CardInstance>();
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+    public int TotalDraw = 0;
+
+    public const int MAX_HAND_SIZE = 4;
+    public const int MAX_TOTAL_DRAWS = 8;
 }
