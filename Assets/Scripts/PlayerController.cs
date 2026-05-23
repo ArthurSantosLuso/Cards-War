@@ -12,8 +12,6 @@ public class PlayerController : NetworkBehaviour
     private GridTile _currentHoveredTile;
     private Camera _mainCamera;
 
-    public Deck PlayerDeck {  get; set; }
-
     public override void OnNetworkSpawn()
     {
         if (IsOwner)
