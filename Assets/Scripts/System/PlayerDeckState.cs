@@ -3,6 +3,7 @@ using System.Collections.Generic;
 public class PlayerDeckState
 {
     public List<CardInstance> Hand = new List<CardInstance>();
+    public Queue<CardInstance> Deck = new Queue<CardInstance>();
 
     public int TotalDraw = 0;
 

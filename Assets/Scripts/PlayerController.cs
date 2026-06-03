@@ -3,11 +3,19 @@ using UnityEngine;
 
 public class PlayerController : NetworkBehaviour
 {
+    public PlayerDeckState deckState = new PlayerDeckState();
+
+    [Header("UI Visuals")]
+    [SerializeField] private GameObject cardUiPrefab;
+    private Transform _handUiContainer;
+
     private readonly NetworkVariable<int> _playerIndex = new(
         0,
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server
     );
+
+    public int ID => _playerIndex.Value;
 
     private GridTile _currentHoveredTile;
     private Camera _mainCamera;
@@ -15,8 +23,24 @@ public class PlayerController : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         if (IsOwner)
+        {
             _mainCamera = Camera.main;
+
+            GameObject containerObj = GameObject.Find("HandContainer");
+            if (containerObj != null)
+            {
+                _handUiContainer = containerObj.transform;
+            }
+            else
+            {
+                Debug.LogError("Could not find a GameObject named 'HandContainer' in the scene!");
+            }
+
+            // Ask server to generate the deck
+            GameManager.Instance.GeneratePlayerDeckServerRpc();
+        }
     }
+
     public void SetPlayerIndex(int index)
     {
         _playerIndex.Value = index;
@@ -28,7 +52,6 @@ public class PlayerController : NetworkBehaviour
     {
         if (!IsOwner) return;
 
-        ChangeColorClientRpc();
         HandleTileInteraction();
     }
 
@@ -55,14 +78,38 @@ public class PlayerController : NetworkBehaviour
     }
 
     [ClientRpc]
-    private void ChangeColorClientRpc()
+    public void SyncDeckToClientClientRpc(int[] handInstanceIds, int[] handCardIds, int[] deckInstanceIds, int[] deckCardIds, ClientRpcParams clientRpcParams = default)
     {
-        timer += Time.deltaTime;
+        // Reconstruct logical state
+        deckState.Hand.Clear();
+        deckState.Deck.Clear();
 
-        if (timer >= 2)
+        for (int i = 0; i < handInstanceIds.Length; i++)
         {
-            GetComponent<SpriteRenderer>().color = UnityEngine.Random.ColorHSV();
-            timer = 0;
+            deckState.Hand.Add(new CardInstance(handInstanceIds[i], handCardIds[i], ID));
+        }
+
+        for (int i = 0; i < deckInstanceIds.Length; i++)
+        {
+            deckState.Deck.Enqueue(new CardInstance(deckInstanceIds[i], deckCardIds[i], ID));
+        }
+
+        // Clear current UI card elements from previous generation 
+        if (_handUiContainer != null)
+        {
+            foreach (Transform child in _handUiContainer)
+            {
+                Destroy(child.gameObject);
+            }
+
+            // Instantiate visual UI Card prefabs
+            foreach (CardInstance cardInstance in deckState.Hand)
+            {
+                // Instantiate into the canvas layout group container
+                GameObject instantiatedCard = Instantiate(cardUiPrefab, _handUiContainer);
+
+                // initialize card here... Description, Image, Cost, Life, Attack...
+            }
         }
     }
 }

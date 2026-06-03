@@ -178,3 +178,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   ShowTopMostFoldoutHeaderGroup: 1
+  cardUiPrefab: {fileID: 1931266137906419812, guid: dccea83ec5cbc1b4e86e7fcfd11e18a0, type: 3}

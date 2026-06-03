@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 [CreateAssetMenu(fileName = "CardDefinition", menuName = "Scriptable Objects/Card")]
 public class Card : ScriptableObject

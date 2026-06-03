@@ -249,9 +249,8 @@ public class NetworkSetup : MonoBehaviour
         networkObject.SpawnAsPlayerObject(clientId, true);
         networkObject.ChangeOwnership(clientId);
 
-        // ── FIX: server authoritatively assigns the player index ──────────
+        // Server assigns the player index
         spawnedObject.SetPlayerIndex(playerPrefabIndex);
-        // ──────────────────────────────────────────────────────────────────
 
         playerPrefabIndex = (playerPrefabIndex + 1) % playerPrefabs.Count;
     }
