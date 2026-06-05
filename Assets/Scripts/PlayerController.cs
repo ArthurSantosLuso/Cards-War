@@ -46,10 +46,14 @@ public class PlayerController : NetworkBehaviour
                 {
                     UiManager.Instance.EndTurnButton.onClick.AddListener(OnEndTurnButtonClicked);
                 }
+
+                UiManager.Instance.UpdateTurnText(GameManager.Instance.CurrentTurnNumber.Value);
             }
 
             // Listen to turn changes from the Game Manager
             GameManager.Instance.ActivePlayerIndex.OnValueChanged = OnTurnChanged;
+
+            GameManager.Instance.CurrentTurnNumber.OnValueChanged += OnTurnNumberChanged;
 
             // Listen to own ID assigned byy the server to check if should unlock button at start
             _playerIndex.OnValueChanged += OnPlayerIndexChanged;
@@ -62,6 +66,20 @@ public class PlayerController : NetworkBehaviour
     public override void OnNetworkDespawn()
     {
         _currentMana.OnValueChanged -= OnManaValueChanged;
+
+        if (IsOwner)
+        {
+            _playerIndex.OnValueChanged -= OnPlayerIndexChanged;
+
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.ActivePlayerIndex.OnValueChanged -= OnTurnChanged;
+                GameManager.Instance.CurrentTurnNumber.OnValueChanged -= OnTurnNumberChanged;
+            }
+
+            if (UiManager.Instance != null && UiManager.Instance.EndTurnButton != null)
+                UiManager.Instance.EndTurnButton.onClick.RemoveListener(OnEndTurnButtonClicked);
+        }
     }
 
     private void Update()
@@ -121,7 +139,6 @@ public class PlayerController : NetworkBehaviour
     private void OnTurnChanged(int previous, int current)
     {
         // When the Game Manager changes the turn, update the button state
-        // Adicionar aqui depois talvez uma text box que indica o numero do turno
         if (IsOwner) UpdateTurnUI(current);
     }
 
@@ -140,6 +157,14 @@ public class PlayerController : NetworkBehaviour
             UiManager.Instance.SetEndTurnButtonInteractable(false);
             // Request to end players turn
             GameManager.Instance.RequestEndTurnServerRpc();
+        }
+    }
+
+    private void OnTurnNumberChanged(int previous, int current)
+    {
+        if (IsOwner && UiManager.Instance != null)
+        {
+            UiManager.Instance.UpdateTurnText(current);
         }
     }
 

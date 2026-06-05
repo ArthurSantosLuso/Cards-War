@@ -10,6 +10,7 @@ public class UiManager : MonoBehaviour
     [SerializeField] private Transform          handContainer;
     [SerializeField] private TextMeshProUGUI    manaText;
     [SerializeField] private Button             endTurnButton;
+    [SerializeField] private TextMeshProUGUI    turnText;
 
     public Transform HandContainer  => handContainer;
     public Button EndTurnButton     => endTurnButton;
@@ -22,6 +23,15 @@ public class UiManager : MonoBehaviour
             return;
         }
         Instance = this;
+    }
+
+    public void UpdateTurnText(int turnNumber)
+    {
+        if (turnText != null)
+        {
+            turnText.gameObject.SetActive(true);
+            turnText.text = $"Turn {turnNumber}";
+        }
     }
 
     public void UpdateManaText(int amount)

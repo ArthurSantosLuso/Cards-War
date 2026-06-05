@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class GameManager : NetworkBehaviour
 {
-#region Singleton Stuff
+    #region Singleton Stuff
     public static GameManager Instance { get; private set; }
 
     private void Awake()
@@ -20,7 +20,7 @@ public class GameManager : NetworkBehaviour
     }
     #endregion
 
-    [SerializeField] 
+    [SerializeField]
     private PlayableCards data; // Data that store all playable cards
 
     private int currentPlayers = 0;
@@ -33,10 +33,18 @@ public class GameManager : NetworkBehaviour
         NetworkVariableWritePermission.Server
         );
 
+    public NetworkVariable<int> CurrentTurnNumber = new(
+        1,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server
+    );
+
     // Track round progression
     private int playerFinishedThisRound = 0;
 
     public int TotalCurrentPlayers => currentPlayers;
+
+    #region Rpc Methods
 
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     public void GeneratePlayerDeckServerRpc(RpcParams rpcParams = default)
@@ -114,6 +122,8 @@ public class GameManager : NetworkBehaviour
 
                     ActivePlayerIndex.Value = 0;
 
+                    CurrentTurnNumber.Value++;
+
                     foreach (var client in NetworkManager.Singleton.ConnectedClients.Values)
                     {
                         PlayerController pc = client.PlayerObject.GetComponent<PlayerController>();
@@ -130,4 +140,6 @@ public class GameManager : NetworkBehaviour
             }
         }
     }
+
+    #endregion
 }
