@@ -43,6 +43,15 @@ public class GameManager : NetworkBehaviour
     private int playerFinishedThisRound = 0;
 
     public int TotalCurrentPlayers => currentPlayers;
+ 
+    public Card GetCardDefinition(int cardId)
+    {
+        if (data != null)
+        {
+            return data.GetCard(cardId);
+        }
+        return null;
+    }
 
     #region Rpc Methods
 

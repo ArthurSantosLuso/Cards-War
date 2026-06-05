@@ -201,6 +201,20 @@ public class PlayerController : NetworkBehaviour
                 // Instantiate into the canvas layout group container
                 GameObject instantiatedCard = Instantiate(cardUiPrefab, handUiContainer);
 
+                CardUI cardUiScript  = instantiatedCard.GetComponent<CardUI>();
+                if (cardUiScript != null)
+                {
+                    Card cardData = GameManager.Instance.GetCardDefinition(cardInstance.CardId);
+
+                    if (cardData != null)
+                    {
+                        cardUiScript.Setup(cardData, cardInstance);
+                    }
+                }
+                else
+                {
+                    Debug.LogError($"[Client] Could not find card data for Card ID: {cardInstance.CardId}");
+                }
                 // initialize card here... Description, Image, Cost, Life, Attack...
             }
         }

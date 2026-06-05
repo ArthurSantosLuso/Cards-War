@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6e6354c2fde0dc43ac4c439a6c8350a, type: 3}
+  m_Name: Surge
+  m_EditorClassIdentifier: Assembly-CSharp::Card
+  CardId: 8
+  CardName: Surge
+  CardDescription: Im Surge
+  Damage: 2
+  Health: 5
+  Cost: 2
+  Artwork: {fileID: 0}
+  CardPrefab: {fileID: 1931266137906419812, guid: dccea83ec5cbc1b4e86e7fcfd11e18a0, type: 3}
