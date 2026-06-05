@@ -215,7 +215,6 @@ public class PlayerController : NetworkBehaviour
                 {
                     Debug.LogError($"[Client] Could not find card data for Card ID: {cardInstance.CardId}");
                 }
-                // initialize card here... Description, Image, Cost, Life, Attack...
             }
         }
     }

@@ -18,7 +18,6 @@ public sealed class GridTile : NetworkBehaviour
 
     public void SetHoverActive(bool state)
     {
-        Debug.Log($"hover({name}) = {state}");
         if (!IsClient) return;
 
         _fillAnimator?.SetBool(ActiveHash, state);
