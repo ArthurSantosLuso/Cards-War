@@ -38,6 +38,7 @@ O design do jogo é simples e consiste em:
 	- Durante o seu turno o jogador pode jogar cartas, vizualizar cartas e terminar seu turno
 	- Durante o turno do oponente, o jogador pode apenas vizualizar suas cartas enquanto espera o turno terminar
 	- No fim de ambos turnos, as unidades causam seu respectivo dano a unidade inimiga que estão na mesma linha. (Com exceção de uma carta com efeito especial de atacar todas as unidades)
+	- No caso de não existir unidades na linha, a unidade causa dano diretamente ao jogador inimigo, diminuindo seu HP
 	- No inicio de um novo Round, ambos jogadores recebm 2 de mana e X cartas até completar 4 cartas na mão.
 
 Aqui segue uma tabela de todas unidades com suas informações.
