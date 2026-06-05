@@ -1,5 +1,6 @@
 using Unity.Netcode;
 using UnityEngine;
+using TMPro;
 
 public class PlayerController : NetworkBehaviour
 {
@@ -7,7 +8,8 @@ public class PlayerController : NetworkBehaviour
 
     [Header("UI Visuals")]
     [SerializeField] private GameObject cardUiPrefab;
-    private Transform _handUiContainer;
+
+    private Transform handUiContainer;
 
     private readonly NetworkVariable<int> _playerIndex = new(
         0,
@@ -15,25 +17,30 @@ public class PlayerController : NetworkBehaviour
         NetworkVariableWritePermission.Server
     );
 
-    public int ID => _playerIndex.Value;
+    private readonly NetworkVariable<int> _currentMana = new(
+        1,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server
+        );
 
-    private GridTile _currentHoveredTile;
-    private Camera _mainCamera;
+    public int ID => _playerIndex.Value;
+    public int CurrentMana => _currentMana.Value;
+
+    private GridTile currentHoveredTile;
+    private Camera mainCamera;
 
     public override void OnNetworkSpawn()
     {
+        _currentMana.OnValueChanged += OnManaValueChanged;
+
         if (IsOwner)
         {
-            _mainCamera = Camera.main;
+            mainCamera = Camera.main;
 
-            GameObject containerObj = GameObject.Find("HandContainer");
-            if (containerObj != null)
+            if (UiManager.Instance != null)
             {
-                _handUiContainer = containerObj.transform;
-            }
-            else
-            {
-                Debug.LogError("Could not find a GameObject named 'HandContainer' in the scene!");
+                handUiContainer = UiManager.Instance.HandContainer;
+                UiManager.Instance.UpdateManaText(_currentMana.Value);
             }
 
             // Ask server to generate the deck
@@ -41,12 +48,10 @@ public class PlayerController : NetworkBehaviour
         }
     }
 
-    public void SetPlayerIndex(int index)
+    public override void OnNetworkDespawn()
     {
-        _playerIndex.Value = index;
+        _currentMana.OnValueChanged -= OnManaValueChanged;
     }
-
-    private float timer;
 
     private void Update()
     {
@@ -55,9 +60,14 @@ public class PlayerController : NetworkBehaviour
         HandleTileInteraction();
     }
 
+    public void SetPlayerIndex(int index)
+    {
+        _playerIndex.Value = index;
+    }
+
     private void HandleTileInteraction()
     {
-        Vector2 mousePosition = _mainCamera.ScreenToWorldPoint(Input.mousePosition);
+        Vector2 mousePosition = mainCamera.ScreenToWorldPoint(Input.mousePosition);
         RaycastHit2D hit = Physics2D.Raycast(mousePosition, Vector2.zero);
 
         GridTile targetedTile = null;
@@ -70,11 +80,25 @@ public class PlayerController : NetworkBehaviour
                 targetedTile = tile;
         }
 
-        if (targetedTile == _currentHoveredTile) return;
+        if (targetedTile == currentHoveredTile) return;
 
-        _currentHoveredTile?.SetHoverActive(false);
-        _currentHoveredTile = targetedTile;
-        _currentHoveredTile?.SetHoverActive(true);
+        currentHoveredTile?.SetHoverActive(false);
+        currentHoveredTile = targetedTile;
+        currentHoveredTile?.SetHoverActive(true);
+    }
+
+    private void OnManaValueChanged(int previousValue, int newValue)
+    {
+        if (IsOwner && UiManager.Instance != null)
+        {
+            UiManager.Instance.UpdateManaText(newValue);
+        }
+    }
+
+    public void ModifyManaServeAuthoritative(int amount)
+    {
+        if (!IsServer) return;
+        _currentMana.Value = Mathf.Max(0, _currentMana.Value + amount);
     }
 
     [ClientRpc]
@@ -95,9 +119,9 @@ public class PlayerController : NetworkBehaviour
         }
 
         // Clear current UI card elements from previous generation 
-        if (_handUiContainer != null)
+        if (handUiContainer != null)
         {
-            foreach (Transform child in _handUiContainer)
+            foreach (Transform child in handUiContainer)
             {
                 Destroy(child.gameObject);
             }
@@ -106,7 +130,7 @@ public class PlayerController : NetworkBehaviour
             foreach (CardInstance cardInstance in deckState.Hand)
             {
                 // Instantiate into the canvas layout group container
-                GameObject instantiatedCard = Instantiate(cardUiPrefab, _handUiContainer);
+                GameObject instantiatedCard = Instantiate(cardUiPrefab, handUiContainer);
 
                 // initialize card here... Description, Image, Cost, Life, Attack...
             }

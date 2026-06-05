@@ -12,11 +12,12 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     private void Start()
     {
         rectTransform = GetComponent<RectTransform>();
+        targetPivot = pivotWhenIdle;
     }
 
     private void Update()
     {
-        rectTransform.pivot = Vector2.Lerp(rectTransform.pivot, targetPivot, 6f);
+        rectTransform.pivot = Vector2.Lerp(rectTransform.pivot, targetPivot, 3f);
     }
 
     public void OnPointerEnter(PointerEventData eventData)
