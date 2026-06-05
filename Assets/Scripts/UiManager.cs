@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class UiManager : MonoBehaviour
 {
@@ -8,8 +9,10 @@ public class UiManager : MonoBehaviour
     [Header("References")]
     [SerializeField] private Transform          handContainer;
     [SerializeField] private TextMeshProUGUI    manaText;
+    [SerializeField] private Button             endTurnButton;
 
-    public Transform HandContainer => handContainer;
+    public Transform HandContainer  => handContainer;
+    public Button EndTurnButton     => endTurnButton;
 
     private void Awake()
     {
@@ -27,6 +30,14 @@ public class UiManager : MonoBehaviour
         {
             manaText.gameObject.SetActive(true);
             manaText.text = $"Mana: {amount}";
+        }
+    }
+
+    public void SetEndTurnButtonInteractable(bool isInteractable)
+    {
+        if (endTurnButton != null)
+        {
+            endTurnButton.interactable = isInteractable;
         }
     }
     

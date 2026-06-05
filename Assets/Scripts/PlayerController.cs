@@ -41,7 +41,18 @@ public class PlayerController : NetworkBehaviour
             {
                 handUiContainer = UiManager.Instance.HandContainer;
                 UiManager.Instance.UpdateManaText(_currentMana.Value);
+
+                if (UiManager.Instance.EndTurnButton != null)
+                {
+                    UiManager.Instance.EndTurnButton.onClick.AddListener(OnEndTurnButtonClicked);
+                }
             }
+
+            // Listen to turn changes from the Game Manager
+            GameManager.Instance.ActivePlayerIndex.OnValueChanged = OnTurnChanged;
+
+            // Listen to own ID assigned byy the server to check if should unlock button at start
+            _playerIndex.OnValueChanged += OnPlayerIndexChanged;
 
             // Ask server to generate the deck
             GameManager.Instance.GeneratePlayerDeckServerRpc();
@@ -101,6 +112,39 @@ public class PlayerController : NetworkBehaviour
         _currentMana.Value = Mathf.Max(0, _currentMana.Value + amount);
     }
 
+    private void OnPlayerIndexChanged(int previous, int current)
+    {
+        // When the server assigns the player ID, check if it's their turn right now
+        if (IsOwner) UpdateTurnUI(GameManager.Instance.ActivePlayerIndex.Value);
+    }
+
+    private void OnTurnChanged(int previous, int current)
+    {
+        // When the Game Manager changes the turn, update the button state
+        // Adicionar aqui depois talvez uma text box que indica o numero do turno
+        if (IsOwner) UpdateTurnUI(current);
+    }
+
+    private void UpdateTurnUI(int activeTurnId)
+    {
+        bool isMyTurn = (ID == activeTurnId);
+        UiManager.Instance.SetEndTurnButtonInteractable(isMyTurn);
+    }
+
+    private void OnEndTurnButtonClicked()
+    {
+        // Check if it is players turn (even though the button should be disabled)
+        if (ID == GameManager.Instance.ActivePlayerIndex.Value)
+        {
+            // Disable end turn button
+            UiManager.Instance.SetEndTurnButtonInteractable(false);
+            // Request to end players turn
+            GameManager.Instance.RequestEndTurnServerRpc();
+        }
+    }
+
+    #region RPC Methods
+
     [ClientRpc]
     public void SyncDeckToClientClientRpc(int[] handInstanceIds, int[] handCardIds, int[] deckInstanceIds, int[] deckCardIds, ClientRpcParams clientRpcParams = default)
     {
@@ -136,4 +180,6 @@ public class PlayerController : NetworkBehaviour
             }
         }
     }
+
+    #endregion
 }

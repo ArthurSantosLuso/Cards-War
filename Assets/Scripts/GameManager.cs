@@ -26,6 +26,16 @@ public class GameManager : NetworkBehaviour
     private int currentPlayers = 0;
     private int cardsInGame = 0;
 
+    // Track players turn (0 = Player 1 or 1 = Player 2)
+    public NetworkVariable<int> ActivePlayerIndex = new(
+        0,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server
+        );
+
+    // Track round progression
+    private int playerFinishedThisRound = 0;
+
     public int TotalCurrentPlayers => currentPlayers;
 
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
@@ -81,6 +91,42 @@ public class GameManager : NetworkBehaviour
 
                 // Send data to the client
                 player.SyncDeckToClientClientRpc(handInstanceIds, handCardIds, deckInstanceIds, deckCardIds, clientRpcParams);
+            }
+        }
+    }
+
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+    public void RequestEndTurnServerRpc(RpcParams rpcParams = default)
+    {
+        ulong clientId = rpcParams.Receive.SenderClientId;
+
+        if (NetworkManager.Singleton.ConnectedClients.TryGetValue(clientId, out var networkClient))
+        {
+            PlayerController player = networkClient.PlayerObject.GetComponent<PlayerController>();
+
+            if (player != null && player.ID == ActivePlayerIndex.Value)
+            {
+                playerFinishedThisRound++;
+
+                if (playerFinishedThisRound >= 2)
+                {
+                    playerFinishedThisRound = 0;
+
+                    ActivePlayerIndex.Value = 0;
+
+                    foreach (var client in NetworkManager.Singleton.ConnectedClients.Values)
+                    {
+                        PlayerController pc = client.PlayerObject.GetComponent<PlayerController>();
+                        if (pc != null)
+                        {
+                            pc.ModifyManaServeAuthoritative(1);
+                        }
+                    }
+                }
+                else
+                {
+                    ActivePlayerIndex.Value++;
+                }
             }
         }
     }
