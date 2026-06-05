@@ -21,7 +21,7 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, 
     private Vector2 targetPivot;
 
     // Track selection state globally
-    private static CardUI currentlySelectedCard;
+    public static CardUI currentlySelectedCard;
     private bool isSelected = false;
 
     public CardInstance InstanceData { get; private set; }
@@ -101,6 +101,14 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, 
 
         // Only clear the global reference if we are clearing ourselves
         if (currentlySelectedCard == this)
+        {
+            currentlySelectedCard = null;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (currentlySelectedCard != null)
         {
             currentlySelectedCard = null;
         }

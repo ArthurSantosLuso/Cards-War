@@ -87,11 +87,38 @@ public class PlayerController : NetworkBehaviour
         if (!IsOwner) return;
 
         HandleTileInteraction();
+        HandleCardPlacement();
     }
 
     public void SetPlayerIndex(int index)
     {
         _playerIndex.Value = index;
+    }
+
+    private void HandleCardPlacement()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            if (currentHoveredTile != null && currentHoveredTile.OwnerID == ID && !currentHoveredTile.IsOccupied)
+            {
+                if (CardUI.currentlySelectedCard != null)
+                {
+                    Card cardData = GameManager.Instance.GetCardDefinition(CardUI.currentlySelectedCard.InstanceData.CardId);
+
+                    if (CurrentMana >= cardData.Cost)
+                    {
+                        GameManager.Instance.PlayCardServerRpc(
+                            CardUI.currentlySelectedCard.InstanceData.InstanceId,
+                            currentHoveredTile.transform.position
+                            );
+                    }
+                    else
+                    {
+                        Debug.Log("[Client] Not enough mana to play this card");
+                    }
+                }
+            }
+        }
     }
 
     private void HandleTileInteraction()

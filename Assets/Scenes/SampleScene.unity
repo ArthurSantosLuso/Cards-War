@@ -4258,6 +4258,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   ShowTopMostFoldoutHeaderGroup: 1
   data: {fileID: 11400000, guid: 80577dd770f4e3d419c98be60a80cb89, type: 2}
+  unitPrefab: {fileID: 802213152425012680, guid: 914bfa9988720da44b9d9d479a30d8c3, type: 3}
   ActivePlayerIndex:
     UpdateTraits:
       MinSecondsBetweenUpdates: 0
