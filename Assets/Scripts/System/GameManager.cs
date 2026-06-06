@@ -21,7 +21,10 @@ public class GameManager : NetworkBehaviour
     #endregion
 
     [SerializeField]
-    private PlayableCards data; // Data that store all playable cards
+    private PlayableCards data; // Data that stores all playable cards
+
+    [SerializeField]
+    private PlayableEffects effectsData; // Data that stores all playable effects
 
     [SerializeField]
     private GameObject unitPrefab;
@@ -49,10 +52,13 @@ public class GameManager : NetworkBehaviour
 
     public Card GetCardDefinition(int cardId)
     {
-        if (data != null)
-        {
-            return data.GetCard(cardId);
-        }
+        if (data != null) return data.GetCard(cardId);
+        return null;
+    }
+
+    public EffectSO GetEffectDefinition(int effectId)
+    {
+        if (effectsData != null) return effectsData.GetEffect(effectId);
         return null;
     }
 
@@ -87,37 +93,129 @@ public class GameManager : NetworkBehaviour
     {
         if (!IsServer) return;
 
-        // Define the pairs of tiles that make up the 4 opposing lanes
         int[,] lanes = new int[,] { { 0, 4 }, { 1, 5 }, { 2, 6 }, { 3, 7 } };
+
+        // Collect all units so it can check redirect effects
+        UnitController[] p1Units = new UnitController[4];
+        UnitController[] p2Units = new UnitController[4];
+        for (int i = 0; i < 4; i++)
+        {
+            p1Units[i] = GridManager.Instance.GetTile(lanes[i, 0]).CurrentUnit;
+            p2Units[i] = GridManager.Instance.GetTile(lanes[i, 1]).CurrentUnit;
+        }
+
+        // Find redirect shields
+        UnitController p1Shield = FindRedirectShield(p1Units); // absorbs damage aimed at player 0
+        UnitController p2Shield = FindRedirectShield(p2Units); // absorbs damage aimed at player 1
+
+        // Store (target, amount) pairs so deaths mid loop dont skip hits
+        var damageQueue = new System.Collections.Generic.List<(UnitController target, int amount)>();
+        var playerDamageQueue = new System.Collections.Generic.List<(int playerId, int amount, UnitController shield)>();
 
         for (int i = 0; i < 4; i++)
         {
-            GridTile p1Tile = GridManager.Instance.GetTile(lanes[i, 0]);
-            GridTile p2Tile = GridManager.Instance.GetTile(lanes[i, 1]);
+            UnitController p1Unit = p1Units[i];
+            UnitController p2Unit = p2Units[i];
 
-            UnitController p1Unit = p1Tile.CurrentUnit;
-            UnitController p2Unit = p2Tile.CurrentUnit;
-
-            if (p1Unit != null && p2Unit != null)
+            if (p1Unit != null)
             {
-                // Cache attack values first so dying doesn't prevent dealing damage
-                int p1Dmg = p1Unit.Attack;
-                int p2Dmg = p2Unit.Attack;
-
-                p1Unit.TakeDamage(p2Dmg);
-                p2Unit.TakeDamage(p1Dmg);
+                if (p1Unit.Effect != null && p1Unit.Effect.AttacksAllLanes(p1Unit))
+                {
+                    // Attack every enemy lane
+                    for (int j = 0; j < 4; j++)
+                    {
+                        if (p2Units[j] != null)
+                        {
+                            int dmg = p1Unit.Effect.ModifyOutgoingDamageVsUnit(p1Unit.Attack, p1Unit, p2Units[j]);
+                            damageQueue.Add((p2Units[j], dmg));
+                        }
+                        else
+                        {
+                            int dmg = p1Unit.Effect != null
+                                ? p1Unit.Effect.ModifyOutgoingDamageVsPlayer(p1Unit.Attack, p1Unit)
+                                : p1Unit.Attack;
+                            playerDamageQueue.Add((1, dmg, p2Shield));
+                        }
+                    }
+                }
+                else if (p2Unit != null)
+                {
+                    int dmg = p1Unit.Effect != null
+                        ? p1Unit.Effect.ModifyOutgoingDamageVsUnit(p1Unit.Attack, p1Unit, p2Unit)
+                        : p1Unit.Attack;
+                    damageQueue.Add((p2Unit, dmg));
+                }
+                else
+                {
+                    int dmg = p1Unit.Effect != null
+                        ? p1Unit.Effect.ModifyOutgoingDamageVsPlayer(p1Unit.Attack, p1Unit)
+                        : p1Unit.Attack;
+                    playerDamageQueue.Add((1, dmg, p2Shield));
+                }
             }
-            // Only player 1 has a unit in the lane attack player 2 directly
-            else if (p1Unit != null && p2Unit == null)
+
+            // P2 unit attacks
+            if (p2Unit != null)
             {
-                GetPlayerByID(1)?.TakeDamageServerAuthoritative(p1Unit.Attack);
-            }
-            // Only player 2 has a unit in the lane attack player 1 directly
-            else if (p2Unit != null && p1Unit == null)
-            {
-                GetPlayerByID(0)?.TakeDamageServerAuthoritative(p2Unit.Attack);
+                if (p2Unit.Effect != null && p2Unit.Effect.AttacksAllLanes(p2Unit))
+                {
+                    for (int j = 0; j < 4; j++)
+                    {
+                        if (p1Units[j] != null)
+                        {
+                            int dmg = p2Unit.Effect.ModifyOutgoingDamageVsUnit(p2Unit.Attack, p2Unit, p1Units[j]);
+                            damageQueue.Add((p1Units[j], dmg));
+                        }
+                        else
+                        {
+                            int dmg = p2Unit.Effect != null
+                                ? p2Unit.Effect.ModifyOutgoingDamageVsPlayer(p2Unit.Attack, p2Unit)
+                                : p2Unit.Attack;
+                            playerDamageQueue.Add((0, dmg, p1Shield));
+                        }
+                    }
+                }
+                else if (p1Unit != null)
+                {
+                    int dmg = p2Unit.Effect != null
+                        ? p2Unit.Effect.ModifyOutgoingDamageVsUnit(p2Unit.Attack, p2Unit, p1Unit)
+                        : p2Unit.Attack;
+                    damageQueue.Add((p1Unit, dmg));
+                }
+                else
+                {
+                    int dmg = p2Unit.Effect != null
+                        ? p2Unit.Effect.ModifyOutgoingDamageVsPlayer(p2Unit.Attack, p2Unit)
+                        : p2Unit.Attack;
+                    playerDamageQueue.Add((0, dmg, p1Shield));
+                }
             }
         }
+
+        // Apply all unit damage simultaneously
+        foreach (var (target, amount) in damageQueue)
+            target.TakeDamage(amount);
+
+        // Apply player damage (redirect to shield if present)
+        foreach (var (playerId, amount, shield) in playerDamageQueue)
+        {
+            if (shield != null)
+                shield.TakeDamage(amount);
+            else
+                GetPlayerByID(playerId)?.TakeDamageServerAuthoritative(amount);
+        }
+    }
+
+    // Returns the first unit in a player's lanes that has the RedirectPlayerDamage effect active.
+    private UnitController FindRedirectShield(UnitController[] units)
+    {
+        foreach (var unit in units)
+        {
+            if (unit == null || unit.Effect == null) continue;
+            if (unit.Effect.RedirectsPlayerDamage(unit, out _))
+                return unit;
+        }
+        return null;
     }
 
     private PlayerController GetPlayerByID(int id)
@@ -281,7 +379,8 @@ public class GameManager : NetworkBehaviour
                         if (unitScript != null)
                         {
                             // Pass the card health, attack, player ID (0 or 1), and tile reference
-                            unitScript.SetupServer(cardData.Health, cardData.Damage, cardData.CardId, player.ID, tile);
+                            int effectId = cardData.Effect != null ? cardData.Effect.EffectId : -1;
+                            unitScript.SetupServer(cardData.Health, cardData.Damage, cardData.CardId, effectId, player.ID, tile);
                         }
                     }
                 }

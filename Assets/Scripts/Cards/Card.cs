@@ -16,6 +16,9 @@ public class Card : ScriptableObject
     public int Health;
     public int Cost;
 
+    [Header("Effect")]
+    public EffectSO Effect;
+
     [Header("Visual")]
     public Sprite Artwork;
 

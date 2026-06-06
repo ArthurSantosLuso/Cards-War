@@ -18,5 +18,6 @@ MonoBehaviour:
   Damage: 1
   Health: 12
   Cost: 3
+  Effect: {fileID: 11400000, guid: fdffe32c58a5344409230966a34f9bd1, type: 2}
   Artwork: {fileID: 21300000, guid: a708540f84296704a85f9ca2813d0cfb, type: 3}
   CardPrefab: {fileID: 1931266137906419812, guid: dccea83ec5cbc1b4e86e7fcfd11e18a0, type: 3}
