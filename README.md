@@ -6,7 +6,7 @@ Este relatório vai servir como um documentario do processo de criação do jogo
 
 ## Sobre o jogo
 
-O jogo é bastante inspirado no jogo "Cards Wars" lançado pela Cartoon Network, lançado em 2014. O jogo foi retirado das lojas em dezembro de 2019.
+O jogo é bastante inspirado no jogo "Cards Wars" publicado pela Cartoon Network, foi lançado em 2014. Foi retirado das lojas em dezembro de 2019.
 
 ![CardWarsLogo](Images/CardWarsLogo.png)
 
