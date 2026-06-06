@@ -300,4 +300,86 @@ Não foi mostrado anteriormente, mas durante o processo de geração da mão e d
 
 ## Sistema de Mana
 
-A
+É necessario utilizar mana para jogar cartas, essa mana inicia com um valor de 1 e a cada turno aumenta +2.
+
+Eu utilizo uma Network Variable para alcançar isso:
+
+```c#
+private readonly NetworkVariable<int> _currentMana = new(
+    1,
+    NetworkVariableReadPermission.Everyone,
+    NetworkVariableWritePermission.Server
+    );
+```
+
+Dentro do controlador do player existe um metodo para alterar o valor da mana. Isso poderia causar problemas com jogadores tentando trapacear, mas é facilmente evitavel com uma verificação se quem está acessando o metodo é o servidor e se caso for o cliente, o metodo não faz nada.
+
+```c#
+public void ModifyManaServeAuthoritative(int amount)
+{
+    if (!IsServer) return; // <- Essa verificação garante que apenas o servidor pode acessar o metodo
+    _currentMana.Value = Mathf.Max(0, _currentMana.Value + amount);
+}
+```
+
+## Contagem de Turnos
+
+Para a contagem de turnos é algo parecido com a mana. Existe uma Network Variable dentro do `GameManager.cs` onde seu `Delegate` `OnValueChanged` é ouvido pelo método `OnTurnNumberChanged` dentro do controlador do jogador.
+
+```c#
+GameManager.Instance.CurrentTurnNumber.OnValueChanged += OnTurnNumberChanged;
+```
+
+Toda vez que um jogador termina seu turno, é feito um pedido de terminar o turno para o servidor.
+
+```c#
+private void OnEndTurnButtonClicked()
+{
+    // Check if it is players turn (even though the button should be disabled)
+    if (ID == GameManager.Instance.ActivePlayerIndex.Value)
+    {
+        // Disable end turn button
+        UiManager.Instance.SetEndTurnButtonInteractable(false);
+        // Request to end players turn
+        GameManager.Instance.RequestEndTurnServerRpc();
+    }
+}
+```
+
+Então o servidor verifica se ambos jogadores já fizeram suas jogadas, se sim, o servidor aumenta seu valor de turno, notificando o metodo em `PlayerController.cs` para fazer mudança do contador de turno de cada jogador.
+
+```c#
+[Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+public void RequestEndTurnServerRpc(RpcParams rpcParams = default)
+{
+    ulong clientId = rpcParams.Receive.SenderClientId;
+
+    if (NetworkManager.Singleton.ConnectedClients.TryGetValue(clientId, out var networkClient))
+    {
+        PlayerController player = networkClient.PlayerObject.GetComponent<PlayerController>();
+
+        if (player != null && player.ID == ActivePlayerIndex.Value)
+        {
+            playerFinishedThisRound++;
+
+            if (playerFinishedThisRound >= 2)
+            {
+                // ...
+                CurrentTurnNumber.Value++;
+                // ...
+            }
+        }
+    }
+}
+```
+
+```c#
+// Em PlayerController.cs
+private void OnTurnNumberChanged(int previous, int current)
+{
+    if (IsOwner && UiManager.Instance != null)
+    {
+        UiManager.Instance.UpdateTurnText(current);
+    }
+}
+```
