@@ -158,9 +158,7 @@ public class GameManager : NetworkBehaviour
                 if (playerFinishedThisRound >= 2)
                 {
                     playerFinishedThisRound = 0;
-
                     ActivePlayerIndex.Value = 0;
-
                     CurrentTurnNumber.Value++;
 
                     foreach (var client in NetworkManager.Singleton.ConnectedClients.Values)
@@ -168,7 +166,17 @@ public class GameManager : NetworkBehaviour
                         PlayerController pc = client.PlayerObject.GetComponent<PlayerController>();
                         if (pc != null)
                         {
-                            pc.ModifyManaServeAuthoritative(1);
+                            pc.ModifyManaServeAuthoritative(2);
+
+                            if (pc.deckState.Deck.Count > 0)
+                            {
+                                if (pc.deckState.Hand.Count < PlayerDeckState.MAX_HAND_SIZE)
+                                {
+                                    CardInstance drawnCard = pc.deckState.Deck.Dequeue();
+                                    pc.deckState.Hand.Add(drawnCard);
+                                }
+                            }
+                            SyncDeckToClient(pc, client.ClientId);
                         }
                     }
                 }

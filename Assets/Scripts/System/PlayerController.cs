@@ -51,7 +51,7 @@ public class PlayerController : NetworkBehaviour
             }
 
             // Listen to turn changes from the Game Manager
-            GameManager.Instance.ActivePlayerIndex.OnValueChanged = OnTurnChanged;
+            GameManager.Instance.ActivePlayerIndex.OnValueChanged += OnTurnChanged;
 
             GameManager.Instance.CurrentTurnNumber.OnValueChanged += OnTurnNumberChanged;
 
