@@ -11,7 +11,7 @@ public class UnitVisual : NetworkBehaviour
 
     private void Awake()
     {
-        spriteRenderer = GetComponent<SpriteRenderer>();
+        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
     }
 
     public void SetupUI(int attack, int hp, Sprite artwork)
