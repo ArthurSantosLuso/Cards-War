@@ -49,15 +49,30 @@ public class UiManager : MonoBehaviour
 
     public void UpdatePlayerHealthText(int playerId, int currentHealth)
     {
+        int localPlayerId = -1;
+
+        var localPlayerObj = Unity.Netcode.NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject();
+        if (localPlayerObj != null)
+        {
+            var localController = localPlayerObj.GetComponent<PlayerController>();
+            if (localController != null)
+            {
+                localPlayerId = localController.ID;
+            }
+        }
+
+        // Compare the id being updated to the local player's id
+        string hpPrefix = (playerId == localPlayerId) ? "Your HP" : "Enemy HP";
+
         if (playerId == 0 && player1HealthText != null)
         {
             player1HealthText.gameObject.SetActive(true);
-            player1HealthText.text = $"P1 Health: {currentHealth}";
+            player1HealthText.text = $"{hpPrefix}: {currentHealth}";
         }
         else if (playerId == 1 && player2HealthText != null)
         {
             player2HealthText.gameObject.SetActive(true);
-            player2HealthText.text = $"P2 Health: {currentHealth}";
+            player2HealthText.text = $"{hpPrefix}: {currentHealth}";
         }
     }
 
