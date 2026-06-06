@@ -383,3 +383,103 @@ private void OnTurnNumberChanged(int previous, int current)
     }
 }
 ```
+
+## Sistema de Unidades
+
+Após o jogador selecionar uma carta da sua mão e clicar num tile, é iniciado o processo de colocação da carta no tabuleiro.
+No `PlayerController.cs`, o método `HandleCardPlacement()` é chamado a cada frame dentro do Update(). Este método verifica três condições antes de qualquer coisa: se o jogador clicou com o botão esquerdo do rato, se existe um tile válido a ser "hovado", e se existe uma carta selecionada.
+
+```c#
+private void HandleCardPlacement()
+{
+    if (Input.GetMouseButtonDown(0))
+    {
+        if (currentHoveredTile != null && currentHoveredTile.OwnerID == ID && !currentHoveredTile.IsOccupied)
+        {
+            if (CardUI.currentlySelectedCard != null)
+            {
+                Card cardData = GameManager.Instance.GetCardDefinition(CardUI.currentlySelectedCard.InstanceData.CardId);
+
+                if (CurrentMana >= cardData.Cost)
+                {
+                    GameManager.Instance.PlayCardServerRpc(
+                        CardUI.currentlySelectedCard.InstanceData.InstanceId,
+                        currentHoveredTile.TileIndex
+                    );
+                }
+            }
+        }
+    }
+}
+```
+
+O cliente não envia a posição do mundo ao servidor, mas sim o índice do tile. Isto é importante porque a posição no mundo pode ser ligeiramente diferente entre os dois clientes. O índice é um valor simples e inequívoco que o servidor consegue validar diretamente através do GridManager.
+Do lado do servidor, o método PlayCardServerRpc() no GameManager.cs recebe o pedido e executa várias verificações antes de aceitar a jogada:
+
+```c#
+[Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+public void PlayCardServerRpc(int instanceId, int tileIndex, RpcParams rpcParams = default)
+{
+    // É o turno deste jogador?
+    if (player.ID != ActivePlayerIndex.Value) return;
+
+    // A carta existe na mão do jogador?
+    CardInstance cardToPlay = player.deckState.Hand.Find(c => c.InstanceId == instanceId);
+    if (cardToPlay == null) return;
+
+    // O jogador tem mana suficiente?
+    Card cardData = GetCardDefinition(cardToPlay.CardId);
+    if (player.CurrentMana < cardData.Cost) return;
+
+    // O tile é válido, pertence ao jogador e está livre?
+    GridTile tile = GridManager.Instance.GetTile(tileIndex);
+    if (tile == null || tile.IsOccupied || tile.OwnerID != player.ID) return;
+    
+    // ...
+}
+```
+
+Este conjunto de verificações é fundamental para a segurança do jogo. Mesmo que o cliente tenha as suas próprias verificações antes de enviar o pedido, é boa prática o servidor nunca confia 100% no que recebe e valida tudo novamente de forma independente.
+Após todas as verificações passarem, o servidor reduz a mana, remove a carta da mão e instancia a unidade no tabuleiro. A ordem de operações aqui é importante: o objeto é primeiro registado na rede com `.Spawn()` e só depois é que o `SetupServer()` escreve nos `NetworkVariables`. É preciso fazer isso porque os `NetworkVariables` apenas propagam os seus valores para os clientes depois do objeto estar devidamente registado na rede.
+
+```c#
+player.ModifyManaServeAuthoritative(-cardData.Cost);
+player.deckState.Hand.Remove(cardToPlay);
+
+GameObject spawnedUnit = Instantiate(unitPrefab, tile.transform.position, Quaternion.identity);
+spawnedUnit.GetComponent<NetworkObject>().Spawn(true);
+
+UnitController unitScript = spawnedUnit.GetComponent<UnitController>();
+if (unitScript != null)
+{
+    int effectId = cardData.Effect != null ? cardData.Effect.EffectId : -1;
+    unitScript.SetupServer(cardData.Health, cardData.Damage, cardData.CardId, effectId, player.ID, tile);
+}
+
+SyncDeckToClient(player, clientId);
+```
+
+No `UnitController.cs`, o `SetupServer()` define o HP, o ataque, o ID da carta e o ID do efeito nos seus respectivos `NetworkVariables`. Como todos os clientes estão subscritos às alterações desses valores através de OnValueChanged, cada cliente atualiza automaticamente a representação visual da unidade assim que os valores chegam.
+
+```c#
+public void SetupServer(int hp, int atk, int cardId, int effectId, int owner, GridTile tile)
+{
+    if (!IsServer) return;
+
+    MaxHealth = hp;
+    health.Value = hp;
+    attack.Value = atk;
+    networkCardId.Value = cardId;
+    networkEffectId.Value = effectId;
+    OwnerId = owner;
+
+    occupiedTile = tile;
+    occupiedTile.SetUnit(this);
+
+    ResolveEffect();
+}
+```
+
+O sprite da carta foi um caso chato. Sprites não podem viajar pela rede, por isso apenas o cardId é sincronizado. Cada cliente resolve o sprite de forma independente consultando o seu `PlayableCards` local, que é um `ScriptableObject` já carregado em memória em todas os clientes.
+
+Falta falar dos efeitos, login/registro e host/join.
