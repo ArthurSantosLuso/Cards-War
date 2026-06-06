@@ -17,4 +17,11 @@ public class GridManager : NetworkBehaviour
         for (int i = 0; i < allTiles.Length; i++)
             allTiles[i].SetOwner(i < 4 ? 0 : 1);
     }
+
+    public GridTile GetTile(int index)
+    {
+        if (index >= 0 && index < allTiles.Length)
+            return allTiles[index];
+        return null;
+    }
 }

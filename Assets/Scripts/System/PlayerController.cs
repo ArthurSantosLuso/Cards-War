@@ -17,6 +17,12 @@ public class PlayerController : NetworkBehaviour
         NetworkVariableWritePermission.Server
     );
 
+    private readonly NetworkVariable<int> _currentHealth = new(
+        20,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server
+    );
+
     private readonly NetworkVariable<int> _currentMana = new(
         1,
         NetworkVariableReadPermission.Everyone,
@@ -25,6 +31,7 @@ public class PlayerController : NetworkBehaviour
 
     public int ID => _playerIndex.Value;
     public int CurrentMana => _currentMana.Value;
+    public int CurrentHealth => _currentHealth.Value;
 
     private GridTile currentHoveredTile;
     private Camera mainCamera;
@@ -32,6 +39,10 @@ public class PlayerController : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         _currentMana.OnValueChanged += OnManaValueChanged;
+        _currentHealth.OnValueChanged += OnHealthNetworkChanged;
+        _playerIndex.OnValueChanged += OnPlayerIndexNetworkChanged;
+
+        UpdateHealthDisplay();
 
         if (IsOwner)
         {
@@ -66,19 +77,12 @@ public class PlayerController : NetworkBehaviour
     public override void OnNetworkDespawn()
     {
         _currentMana.OnValueChanged -= OnManaValueChanged;
+        _currentHealth.OnValueChanged -= OnHealthNetworkChanged;
+        _playerIndex.OnValueChanged -= OnPlayerIndexNetworkChanged;
 
-        if (IsOwner)
+        if (IsOwner && UiManager.Instance != null && UiManager.Instance.EndTurnButton != null)
         {
-            _playerIndex.OnValueChanged -= OnPlayerIndexChanged;
-
-            if (GameManager.Instance != null)
-            {
-                GameManager.Instance.ActivePlayerIndex.OnValueChanged -= OnTurnChanged;
-                GameManager.Instance.CurrentTurnNumber.OnValueChanged -= OnTurnNumberChanged;
-            }
-
-            if (UiManager.Instance != null && UiManager.Instance.EndTurnButton != null)
-                UiManager.Instance.EndTurnButton.onClick.RemoveListener(OnEndTurnButtonClicked);
+            UiManager.Instance.EndTurnButton.onClick.RemoveListener(OnEndTurnButtonClicked);
         }
     }
 
@@ -90,8 +94,29 @@ public class PlayerController : NetworkBehaviour
         HandleCardPlacement();
     }
 
+    public void TakeDamageServerAuthoritative(int amount)
+    {
+        if (!IsServer) return;
+        _currentHealth.Value = Mathf.Max(0, _currentHealth.Value - amount);
+
+        if (_currentHealth.Value <= 0)
+        {
+            Debug.Log($"[Server] Player {ID} has been defeated!");
+            // Implement game over 
+        }
+    }
+
+    private void UpdateHealthDisplay()
+    {
+        if (UiManager.Instance != null)
+        {
+            UiManager.Instance.UpdatePlayerHealthText(ID, _currentHealth.Value);
+        }
+    }
+
     public void SetPlayerIndex(int index)
     {
+        if (!IsServer) return;
         _playerIndex.Value = index;
     }
 
@@ -193,6 +218,16 @@ public class PlayerController : NetworkBehaviour
         {
             UiManager.Instance.UpdateTurnText(current);
         }
+    }
+
+    private void OnHealthNetworkChanged(int oldHp, int newHp)
+    {
+        UpdateHealthDisplay();
+    }
+
+    private void OnPlayerIndexNetworkChanged(int oldIdx, int newIdx)
+    {
+        UpdateHealthDisplay();
     }
 
     #region RPC Methods

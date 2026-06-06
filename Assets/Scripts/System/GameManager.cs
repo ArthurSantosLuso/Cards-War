@@ -83,6 +83,53 @@ public class GameManager : NetworkBehaviour
         player.SyncDeckToClientClientRpc(handInstanceIds, handCardIds, deckInstanceIds, deckCardIds, clientRpcParams);
     }
 
+    private void ResolveCombatServer()
+    {
+        if (!IsServer) return;
+
+        // Define the pairs of tiles that make up the 4 opposing lanes
+        int[,] lanes = new int[,] { { 0, 4 }, { 1, 5 }, { 2, 6 }, { 3, 7 } };
+
+        for (int i = 0; i < 4; i++)
+        {
+            GridTile p1Tile = GridManager.Instance.GetTile(lanes[i, 0]);
+            GridTile p2Tile = GridManager.Instance.GetTile(lanes[i, 1]);
+
+            UnitController p1Unit = p1Tile.CurrentUnit;
+            UnitController p2Unit = p2Tile.CurrentUnit;
+
+            if (p1Unit != null && p2Unit != null)
+            {
+                // Cache attack values first so dying doesn't prevent dealing damage
+                int p1Dmg = p1Unit.Attack;
+                int p2Dmg = p2Unit.Attack;
+
+                p1Unit.TakeDamage(p2Dmg);
+                p2Unit.TakeDamage(p1Dmg);
+            }
+            // Only player 1 has a unit in the lane attack player 2 directly
+            else if (p1Unit != null && p2Unit == null)
+            {
+                GetPlayerByID(1)?.TakeDamageServerAuthoritative(p1Unit.Attack);
+            }
+            // Only player 2 has a unit in the lane attack player 1 directly
+            else if (p2Unit != null && p1Unit == null)
+            {
+                GetPlayerByID(0)?.TakeDamageServerAuthoritative(p2Unit.Attack);
+            }
+        }
+    }
+
+    private PlayerController GetPlayerByID(int id)
+    {
+        foreach (var client in NetworkManager.Singleton.ConnectedClients.Values)
+        {
+            PlayerController pc = client.PlayerObject.GetComponent<PlayerController>();
+            if (pc != null && pc.ID == id) return pc;
+        }
+        return null;
+    }
+
     #region Rpc Methods
 
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
@@ -159,6 +206,9 @@ public class GameManager : NetworkBehaviour
                 {
                     playerFinishedThisRound = 0;
                     ActivePlayerIndex.Value = 0;
+
+                    ResolveCombatServer();
+
                     CurrentTurnNumber.Value++;
 
                     foreach (var client in NetworkManager.Singleton.ConnectedClients.Values)
@@ -221,15 +271,26 @@ public class GameManager : NetworkBehaviour
                 GameObject spawnedUnit = Instantiate(unitPrefab, placePosition, Quaternion.identity);
                 spawnedUnit.GetComponent<NetworkObject>().Spawn(true);
 
-                // TODO: Pass the cardData to the spawnedUnit here so it sets its attack, health & sprite
+                Collider2D col = Physics2D.OverlapPoint(placePosition);
+                if (col != null)
+                {
+                    GridTile tile = col.GetComponent<GridTile>();
+                    if (tile != null)
+                    {
+                        UnitController unitScript = spawnedUnit.GetComponent<UnitController>();
+                        if (unitScript != null)
+                        {
+                            // Pass the card health, attack, player ID (0 or 1), and tile reference
+                            unitScript.SetupServer(cardData.Health, cardData.Damage, player.ID, tile);
+                        }
+                    }
+                }
 
                 // Sync the new deck state back to the client so their UI Card disappears
                 SyncDeckToClient(player, clientId);
             }
         }
     }
-
-
 
     #endregion
 }
