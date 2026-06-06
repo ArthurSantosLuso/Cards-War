@@ -46,7 +46,7 @@ public class GameManager : NetworkBehaviour
     private int playerFinishedThisRound = 0;
 
     public int TotalCurrentPlayers => currentPlayers;
- 
+
     public Card GetCardDefinition(int cardId)
     {
         if (data != null)
@@ -281,7 +281,7 @@ public class GameManager : NetworkBehaviour
                         if (unitScript != null)
                         {
                             // Pass the card health, attack, player ID (0 or 1), and tile reference
-                            unitScript.SetupServer(cardData.Health, cardData.Damage, player.ID, tile);
+                            unitScript.SetupServer(cardData.Health, cardData.Damage, cardData.CardId, player.ID, tile);
                         }
                     }
                 }

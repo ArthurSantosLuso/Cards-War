@@ -7,23 +7,17 @@ public class UnitVisual : NetworkBehaviour
     [SerializeField] private TextMeshProUGUI attackText;
     [SerializeField] private TextMeshProUGUI currentHpText;
 
-    private void Start()
+    private SpriteRenderer spriteRenderer;
+
+    private void Awake()
     {
-        Collider2D col = Physics2D.OverlapPoint(transform.position);
-        if (col != null)
-        {
-            GridTile tile = col.GetComponent<GridTile>();
-            if (tile != null)
-            {
-                tile.SetTileOccupied(true);
-            }
-        }
+        spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
-    public void SetupUI(int attack, int hp)
+    public void SetupUI(int attack, int hp, Sprite artwork)
     {
-        if (attackText!= null) attackText.text = attack.ToString();
+        if (attackText != null) attackText.text = attack.ToString();
         if (currentHpText != null) currentHpText.text = hp.ToString();
+        if (spriteRenderer != null) spriteRenderer.sprite = artwork;
     }
-
 }
