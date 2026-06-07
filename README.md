@@ -635,4 +635,25 @@ NetworkManager.Singleton.SceneManager.LoadScene("GameScene", LoadSceneMode.Singl
 
 Assim que os jogadores conectarem-se, O host invoca o carregamento da scene do jogo.
 
-Falta falar dos efeitos
+## Diagrama de Aquitetura de Redes
+
+<p align="center">
+  <img src="Images/DiagramaDeRede.png" alt="CardsWarGif_InitialSection" width="600">
+</p>
+
+## Referências
+
+
+Tutotial inicialmente utilizado para sistema de grid:
+
+- <https://www.youtube.com/watch?v=l0emsAHIBjU&list=PLcRSafycjWFepsLiAHxxi8D_5GGvu6arf>
+
+Tutorial de login
+
+- <https://www.youtube.com/watch?v=oqi9xsJZb5A>
+
+Videos das aulas de Redes 2026
+
+- <https://www.youtube.com/@diogoandrade9588/videos>
+
+Foi utilizado durante o projeto o uso de ferramentas de AI para correção de estrutura textual e de código. Também foi utilizado para pesquisas.
