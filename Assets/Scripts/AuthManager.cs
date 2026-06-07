@@ -23,6 +23,11 @@ public class AuthManager : MonoBehaviour
             await UnityServices.InitializeAsync();
             Debug.Log("Unity services Initialized successfully.");
 
+            if (AuthenticationService.Instance.IsSignedIn)
+            {
+                return;
+            }
+
             // Check if the player previously checked "Remember me"
             bool shouldRemember = PlayerPrefs.GetInt(RememberMeKey, 0) == 1;
 
@@ -38,7 +43,6 @@ public class AuthManager : MonoBehaviour
         }
     }
 
-    // Handles logging back in using the cached backend token
     private async Task AutoSignInWithToken()
     {
         try
@@ -46,7 +50,6 @@ public class AuthManager : MonoBehaviour
             await AuthenticationService.Instance.SignInAnonymouslyAsync();
             Debug.Log($"Auto Sign In Successful - Player ID: {AuthenticationService.Instance.PlayerId}");
 
-            // Go to next scene
             SceneManager.LoadScene(1);
         }
         catch (AuthenticationException ex)
@@ -60,7 +63,6 @@ public class AuthManager : MonoBehaviour
         }
     }
 
-    // This method is called when the player clicks "Sign Up" button
     public async void SignUpPlayer()
     {
         string username = usernameField.text;
@@ -69,10 +71,7 @@ public class AuthManager : MonoBehaviour
         try
         {
             await AuthenticationService.Instance.SignUpWithUsernamePasswordAsync(username, password);
-
-            // Save the remember me preference
             HandleRememberMePreference();
-
             SceneManager.LoadScene(1);
         }
         catch (AuthenticationException ex)
@@ -85,7 +84,6 @@ public class AuthManager : MonoBehaviour
         }
     }
 
-    // This method is called when the player clicks "Log In" button
     public async void SignInPlayer()
     {
         string username = usernameField.text;
@@ -94,11 +92,7 @@ public class AuthManager : MonoBehaviour
         try
         {
             await AuthenticationService.Instance.SignInWithUsernamePasswordAsync(username, password);
-
-            // Save the remember me preference
             HandleRememberMePreference();
-
-            // Go to next scene
             SceneManager.LoadScene(1);
         }
         catch (AuthenticationException ex)
@@ -111,21 +105,24 @@ public class AuthManager : MonoBehaviour
         }
     }
 
-    // Evaluates whether the checkbox was checked or unchecked upon login
     private void HandleRememberMePreference()
     {
-        if (rememberMeToggle != null && rememberMeToggle.isOn)
+        if (rememberMeToggle != null)
         {
-            PlayerPrefs.SetInt(RememberMeKey, 1);
+            if (rememberMeToggle.isOn)
+            {
+                PlayerPrefs.SetInt(RememberMeKey, 1);
+            }
+            else
+            {
+                PlayerPrefs.SetInt(RememberMeKey, 0);
+
+                AuthenticationService.Instance.ClearSessionToken();
+            }
+            PlayerPrefs.Save();
         }
-        else
-        {
-            ClearRememberMe();
-        }
-        PlayerPrefs.Save();
     }
 
-    // Clears local player preferences
     private void ClearRememberMe()
     {
         PlayerPrefs.SetInt(RememberMeKey, 0);
@@ -137,7 +134,6 @@ public class AuthManager : MonoBehaviour
         }
     }
 
-    // This method is called when the player clicks "Log out" button
     public void LogOutPlayer()
     {
         ClearRememberMe();
@@ -148,7 +144,6 @@ public class AuthManager : MonoBehaviour
         }
 
         SceneManager.LoadScene("LoginRegister");
-
         Debug.Log("Player logged out and cached credentials cleared.");
     }
 }
