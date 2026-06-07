@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Card
   CardId: 5
   CardName: Vanish
-  CardDescription: Im Vanish
+  CardDescription: 40% Chance of dodging enemt attack
   Damage: 6
   Health: 3
   Cost: 2

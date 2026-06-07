@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Card
   CardId: 9
   CardName: Echo
-  CardDescription: Im Echo
+  CardDescription: On death, revives with half HP
   Damage: 4
   Health: 10
   Cost: 3

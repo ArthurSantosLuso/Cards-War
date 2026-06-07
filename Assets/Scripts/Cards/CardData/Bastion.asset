@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Card
   CardId: 3
   CardName: Bastion
-  CardDescription: Im Bastion
+  CardDescription: Redirect all player damage to himself
   Damage: 1
   Health: 12
   Cost: 3

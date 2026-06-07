@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Card
   CardId: 2
   CardName: Talon
-  CardDescription: Im Talon
+  CardDescription: +2 Damage against units
   Damage: 3
   Health: 8
   Cost: 2

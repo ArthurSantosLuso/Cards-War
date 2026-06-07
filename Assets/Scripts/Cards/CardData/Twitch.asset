@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Card
   CardId: 4
   CardName: Twitch
-  CardDescription: Im Twitch
+  CardDescription: No special effect
   Damage: 4
   Health: 4
   Cost: 1

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Card
   CardId: 6
   CardName: Apex
-  CardDescription: Im Apex
+  CardDescription: +2 Damage against Player
   Damage: 6
   Health: 2
   Cost: 3

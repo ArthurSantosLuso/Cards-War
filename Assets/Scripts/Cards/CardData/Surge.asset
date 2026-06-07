@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Card
   CardId: 8
   CardName: Surge
-  CardDescription: Im Surge
-  Damage: 2
+  CardDescription: Attack all lanes
+  Damage: 1
   Health: 5
   Cost: 2
   Effect: {fileID: 11400000, guid: 6d12edc2b208b1245969f98d219f5cc0, type: 2}

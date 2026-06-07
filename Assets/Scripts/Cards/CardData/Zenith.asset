@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Card
   CardId: 7
   CardName: Zenith
-  CardDescription: Im Zenith
+  CardDescription: No special effect
   Damage: 4
   Health: 3
   Cost: 1

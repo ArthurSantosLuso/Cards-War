@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Card
   CardId: 1
   CardName: Brawl
-  CardDescription: Im Brawl
+  CardDescription: No special effect
   Damage: 2
   Health: 5
   Cost: 1
