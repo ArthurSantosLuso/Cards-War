@@ -228,6 +228,14 @@ public class GameManager : NetworkBehaviour
         return null;
     }
 
+    public void TriggerGameOver(int losingPlayerId) 
+    { 
+        if (!IsServer) return;
+        EndGameClientRpc(losingPlayerId);
+    }
+
+
+
     #region Rpc Methods
 
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
@@ -388,6 +396,29 @@ public class GameManager : NetworkBehaviour
                 // Sync the new deck state back to the client so their UI Card disappears
                 SyncDeckToClient(player, clientId);
             }
+        }
+    }
+
+    [ClientRpc]
+    private void EndGameClientRpc(int losingPlayerId)
+    {
+        int localPlayerId = -1;
+
+        var localPlayerObj = NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject();
+        if (localPlayerObj != null)
+        {
+            var localController = localPlayerObj.GetComponent<PlayerController>();
+            if (localController != null)
+            {
+                localPlayerId = localController.ID;
+            }
+        }
+
+        bool isWinner = (localPlayerId != losingPlayerId);
+
+        if (UiManager.Instance != null)
+        {
+            UiManager.Instance.ShowGameOver(isWinner);
         }
     }
 

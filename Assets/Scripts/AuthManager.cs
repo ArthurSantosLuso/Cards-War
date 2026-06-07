@@ -141,7 +141,14 @@ public class AuthManager : MonoBehaviour
     public void LogOutPlayer()
     {
         ClearRememberMe();
-        NetworkManager.Singleton.SceneManager.LoadScene("LoginRegister", LoadSceneMode.Single);
+
+        if (NetworkManager.Singleton != null && (NetworkManager.Singleton.IsClient || NetworkManager.Singleton.IsServer))
+        {
+            NetworkManager.Singleton.Shutdown();
+        }
+
+        SceneManager.LoadScene("LoginRegister");
+
         Debug.Log("Player logged out and cached credentials cleared.");
     }
 }

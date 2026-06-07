@@ -110,7 +110,8 @@ public class PlayerController : NetworkBehaviour
         if (_currentHealth.Value <= 0)
         {
             Debug.Log($"[Server] Player {ID} has been defeated!");
-            // Implement game over 
+
+            GameManager.Instance.TriggerGameOver(ID);
         }
     }
 

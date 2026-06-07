@@ -16,6 +16,11 @@ public class UiManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI player1HealthText;
     [SerializeField] private TextMeshProUGUI player2HealthText;
 
+    [Header("Game Over UI")]
+    [SerializeField] private GameObject endGamePanel;
+    [SerializeField] private TextMeshProUGUI endGameText;
+    [SerializeField] private Button returnToLobbyButton;
+
     public Transform HandContainer => handContainer;
     public Button EndTurnButton => endTurnButton;
 
@@ -27,6 +32,17 @@ public class UiManager : MonoBehaviour
             return;
         }
         Instance = this;
+    }
+
+    private void Start()
+    {
+        // Hide the panel at the start of the match
+        if (endGamePanel != null) endGamePanel.SetActive(false);
+
+        if (returnToLobbyButton != null)
+        {
+            returnToLobbyButton.onClick.AddListener(OnReturnToLobbyClicked);
+        }
     }
 
     public void UpdateTurnText(int turnNumber)
@@ -82,5 +98,31 @@ public class UiManager : MonoBehaviour
         {
             endTurnButton.interactable = isInteractable;
         }
+    }
+
+    public void ShowGameOver(bool isWinner)
+    {
+        if (endGamePanel != null) endGamePanel.SetActive(true);
+
+        if (endGameText != null)
+        {
+            endGameText.text = isWinner ? "YOU WIN!" : "YOU LOST!";
+            endGameText.color = isWinner ? Color.green : Color.red;
+        }
+
+        // Lock the end turn button so players can't keep playing
+        SetEndTurnButtonInteractable(false);
+    }
+
+    private void OnReturnToLobbyClicked()
+    {
+        // Disconnect from the multiplayer session
+        if (Unity.Netcode.NetworkManager.Singleton != null)
+        {
+            Unity.Netcode.NetworkManager.Singleton.Shutdown();
+        }
+
+        // Load main menu scene 
+        UnityEngine.SceneManagement.SceneManager.LoadScene(1);
     }
 }
