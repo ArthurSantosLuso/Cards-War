@@ -19,6 +19,8 @@ using Unity.Services.Authentication;
 using System.Threading.Tasks;
 using Unity.Services.Relay.Models;
 using Unity.VisualScripting;
+using UnityEngine.SceneManagement;
+
 
 
 
@@ -51,6 +53,9 @@ public class NetworkSetup : MonoBehaviour
     }
     private RelayHostData relayData;
 
+    public string CurrentJoinCode { get; private set; } = "";
+    public bool IsHostReady { get; private set; } = false;
+
     private bool isServer = false;
     private int playerPrefabIndex = 0;
     private UnityTransport transport;
@@ -58,35 +63,38 @@ public class NetworkSetup : MonoBehaviour
 
     void Start()
     {
-        // Parse command line arguments
-        string[] args = System.Environment.GetCommandLineArgs();
-        for (int i = 0; i < args.Length; i++)
-        {
-            if (args[i] == "--server")
-            {
-                // --server found, this should be a server application
-                isServer = true;
-            }
-            else if (args[i] == "--code")
-            {
-                joinCode = ((i + 1) < args.Length) ? (args[i + 1]) : ("");
-            }
-        }
-
         transport = GetComponent<UnityTransport>();
         if (transport.Protocol == UnityTransport.ProtocolType.RelayUnityTransport)
         {
             isRelay = true;
         }
-        else
+
+        string[] args = System.Environment.GetCommandLineArgs();
+        for (int i = 0; i < args.Length; i++)
         {
-            textJoinCode.gameObject.SetActive(false);
+            if (args[i] == "--server")
+            {
+                isServer = true;
+            }
+            else if (args[i] == "--code")
+            {
+                joinCode = ((i + 1) < args.Length) ? args[i + 1] : "";
+            }
         }
 
         if (isServer)
             StartCoroutine(StartAsServerCR());
-        else
-            StartCoroutine(StartAsClientCR());
+    }
+
+    public void HostGame()
+    {
+        StartCoroutine(StartAsServerCR());
+    }
+
+    public void JoinGame(string code)
+    {
+        joinCode = code.Trim().ToUpper();
+        StartCoroutine(StartAsClientCR());
     }
 
     IEnumerator StartAsServerCR()
@@ -97,10 +105,8 @@ public class NetworkSetup : MonoBehaviour
         transport.enabled = true;
         SetWindowTitle("Starting as server...");
 
-        // Wait a frame for setups to be done
         yield return null;
 
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         if (isRelay)
         {
             var loginTask = Login();
@@ -122,11 +128,9 @@ public class NetworkSetup : MonoBehaviour
             else
             {
                 Debug.Log("Allocation successfull!");
-                // Fetch result of the task
                 Allocation allocation = allocationTask.Result;
 
                 relayData = new RelayHostData();
-                // Find the appropriate endpoint, just select the first one and use it
                 foreach (var endpoint in allocation.ServerEndpoints)
                 {
                     relayData.IPv4Address = endpoint.Host;
@@ -149,30 +153,42 @@ public class NetworkSetup : MonoBehaviour
                 {
                     Debug.Log("Code retrieved!");
                     relayData.JoinCode = joinCodeTask.Result;
-                    if (textJoinCode != null)
-                    {
-                        textJoinCode.text = $"JoinCode:{relayData.JoinCode}";
-                        textJoinCode.gameObject.SetActive(true);
-                    }
+                    CurrentJoinCode = relayData.JoinCode;
+                    IsHostReady = true;
+                    Debug.Log($"[Host] Join code ready: {CurrentJoinCode}");
 
                     transport.SetRelayServerData(relayData.IPv4Address, relayData.Port, relayData.AllocationIDBytes, relayData.Key, relayData.ConnectionData);
-
                 }
             }
         }
 
-        if (networkManager.StartServer())
+        if (!isRelay)
         {
-            SetWindowTitle("MPWyzards - Server");
-            UnityEngine.Debug.Log($"Serving on port {transport.ConnectionData.Port}...");
+            // Local network: encode IP:port into a code for the joiner
+            string ip = transport.ConnectionData.Address;
+            ushort port = transport.ConnectionData.Port;
+            string raw = $"{ip}:{port}";
+            byte[] bytes = System.Text.Encoding.UTF8.GetBytes(raw);
+            CurrentJoinCode = System.Convert.ToBase64String(bytes)
+                .Replace("+", "A").Replace("/", "B").Replace("=", "").ToUpper();
+            IsHostReady = true;
+            Debug.Log($"[Host] Local join code ready: {CurrentJoinCode} (encodes {raw})");
+        }
+
+        if (networkManager.StartHost())
+        {
+            SetWindowTitle("CardsWar - Host");
+            Debug.Log($"Hosting on port {transport.ConnectionData.Port}...");
 
             networkManager.OnClientConnectedCallback += OnClientConnected;
             networkManager.OnClientDisconnectCallback += OnClientDisconnected;
+
+            networkManager.SceneManager.OnLoadEventCompleted += OnSceneLoadCompleted;
         }
         else
         {
-            SetWindowTitle("Fail to start as server");
-            UnityEngine.Debug.LogError($"Failed to serve on port {transport.ConnectionData.Port}...");
+            SetWindowTitle("Fail to start as host");
+            Debug.LogError($"Failed to host on port {transport.ConnectionData.Port}...");
         }
     }
 
@@ -225,39 +241,42 @@ public class NetworkSetup : MonoBehaviour
     private void OnClientConnected(ulong clientId)
     {
         if (!NetworkManager.Singleton.IsServer) return;
-
-        Debug.Log($"Player {clientId} connected, prefab index = {playerPrefabIndex}!");
-
-        // Find a free spawn point far enough from existing players.
-        var spawnPos = Vector3.zero;
-        var currentPlayers = FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
-        foreach (var spawnLocation in playerSpawnLocations)
-        {
-            float closestDist = float.MaxValue;
-            foreach (var player in currentPlayers)
-                closestDist = Mathf.Min(closestDist, Vector3.Distance(player.transform.position, spawnLocation.position));
-
-            if (closestDist > 20f)
-            {
-                spawnPos = spawnLocation.position;
-                break;
-            }
-        }
-
-        var spawnedObject = Instantiate(playerPrefabs[playerPrefabIndex], spawnPos, Quaternion.identity);
-        var networkObject = spawnedObject.GetComponent<NetworkObject>();
-        networkObject.SpawnAsPlayerObject(clientId, true);
-        networkObject.ChangeOwnership(clientId);
-
-        // Server assigns the player index
-        spawnedObject.SetPlayerIndex(playerPrefabIndex);
-
-        playerPrefabIndex = (playerPrefabIndex + 1) % playerPrefabs.Count;
+        Debug.Log($"Player {clientId} connected!");
     }
 
     private void OnClientDisconnected(ulong clientId)
     {
-        UnityEngine.Debug.Log($"Player {clientId} disconnected!");
+        Debug.Log($"Player {clientId} disconnected!");
+    }
+
+    private void OnSceneLoadCompleted(string sceneName, LoadSceneMode loadSceneMode,
+    List<ulong> clientsCompleted, List<ulong> clientsTimedOut)
+    {
+        if (!NetworkManager.Singleton.IsServer) return;
+
+        NetworkManager.Singleton.SceneManager.OnLoadEventCompleted -= OnSceneLoadCompleted;
+
+        playerPrefabIndex = 0;
+
+        foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
+        {
+            if (playerPrefabIndex >= playerPrefabs.Count)
+            {
+                Debug.LogWarning("More clients than player prefabs!");
+                break;
+            }
+
+            var spawnPos = playerSpawnLocations.Count > playerPrefabIndex
+                ? playerSpawnLocations[playerPrefabIndex].position
+                : Vector3.zero;
+
+            var spawnedObject = Instantiate(playerPrefabs[playerPrefabIndex], spawnPos, Quaternion.identity);
+            var networkObject = spawnedObject.GetComponent<NetworkObject>();
+            networkObject.SpawnAsPlayerObject(clientId, true);
+            spawnedObject.SetPlayerIndex(playerPrefabIndex);
+
+            playerPrefabIndex++;
+        }
     }
 
     IEnumerator StartAsClientCR()
@@ -280,7 +299,7 @@ public class NetworkSetup : MonoBehaviour
                 yield break;
             }
             Debug.Log("Login successfull!");
-            //Ask Unity Services for allocation data based on a join code
+            // Ask Unity Services for allocation data based on a join code
             var joinAllocationTask = JoinAllocationAsync(joinCode);
             yield return new WaitUntil(() => joinAllocationTask.IsCompleted);
             if (joinAllocationTask.Exception != null)
@@ -312,15 +331,38 @@ public class NetworkSetup : MonoBehaviour
             }
         }
 
+        if (!isRelay)
+        {
+            // Decode the Base64 code back into IP:port
+            try
+            {
+                string padded = joinCode.Replace("A", "+").Replace("B", "/");
+                int mod4 = padded.Length % 4;
+                if (mod4 > 0) padded += new string('=', 4 - mod4);
+                byte[] bytes = System.Convert.FromBase64String(padded);
+                string raw = System.Text.Encoding.UTF8.GetString(bytes);
+                string[] parts = raw.Split(':');
+                string ip = parts[0];
+                ushort port = ushort.Parse(parts[1]);
+                transport.SetConnectionData(ip, port);
+                Debug.Log($"[Client] Decoded join code to {ip}:{port}");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[Client] Failed to decode join code '{joinCode}': {e.Message}");
+                yield break;
+            }
+        }
+
         if (networkManager.StartClient())
         {
-            SetWindowTitle("MPWyzards - Client...");
-            UnityEngine.Debug.Log($"Connecting on port {transport.ConnectionData.Port}...");
+            SetWindowTitle("CardsWar - Client");
+            Debug.Log($"Connecting to {transport.ConnectionData.Address}:{transport.ConnectionData.Port}...");
         }
         else
         {
             SetWindowTitle("Fail to start as client");
-            UnityEngine.Debug.LogError($"Failed to connect on port {transport.ConnectionData.Port}...");
+            Debug.LogError($"Failed to connect to {transport.ConnectionData.Address}:{transport.ConnectionData.Port}...");
         }
     }
 
@@ -393,7 +435,7 @@ public class NetworkSetup : MonoBehaviour
             .Where(s => s.enabled)
             .Select(s => s.path)
             .ToArray();
-        buildPlayerOptions.locationPathName = Path.Combine("Builds", "MPWyzard.exe");
+        buildPlayerOptions.locationPathName = Path.Combine("Builds", "CardsWar.exe");
         buildPlayerOptions.target = BuildTarget.StandaloneWindows64;
         buildPlayerOptions.options = BuildOptions.None;
         // Perform the build
@@ -452,7 +494,7 @@ public class NetworkSetup : MonoBehaviour
     [MenuItem("Tools/Launch (Server) _F11", priority = 30)]
     public static void LaunchServer()
     {
-        Run("Builds\\MPWyzard.exe", "--server");
+        Run("Builds\\CardsWar.exe", "--server");
     }
     [MenuItem("Tools/Launch (Server + Client)", priority = 40)]
     public static void LaunchClientAndServer()
@@ -463,14 +505,14 @@ public class NetworkSetup : MonoBehaviour
     [MenuItem("Tools/Launch (Client)", priority = 45)]
     public static void LaunchClient()
     {
-        Run("Builds\\MPWyzard.exe", "");
+        Run("Builds\\CardsWar.exe", "");
     }
 
     [MenuItem("Tools/Close All", priority = 100)]
     public static void CloseAll()
     {
         // Get all processes with the specified name
-        Process[] processes = Process.GetProcessesByName("MPWyzard");
+        Process[] processes = Process.GetProcessesByName("CardsWar");
         foreach (var process in processes)
         {
             try

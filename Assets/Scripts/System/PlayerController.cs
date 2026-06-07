@@ -69,7 +69,15 @@ public class PlayerController : NetworkBehaviour
             // Listen to own ID assigned byy the server to check if should unlock button at start
             _playerIndex.OnValueChanged += OnPlayerIndexChanged;
 
-            // Ask server to generate the deck
+            Invoke(nameof(RequestDeckInitial), 0.1f);
+        }
+    }
+
+    // Helper method for the delayed invoke
+    private void RequestDeckInitial()
+    {
+        if (GameManager.Instance != null)
+        {
             GameManager.Instance.GeneratePlayerDeckServerRpc();
         }
     }

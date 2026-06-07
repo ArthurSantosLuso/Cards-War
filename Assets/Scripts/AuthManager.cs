@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using TMPro;
+using Unity.Netcode;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
 using UnityEngine;
@@ -22,7 +23,7 @@ public class AuthManager : MonoBehaviour
             await UnityServices.InitializeAsync();
             Debug.Log("Unity services Initialized successfully.");
 
-            // Check if the player previously checked "Remember Me"
+            // Check if the player previously checked "Remember me"
             bool shouldRemember = PlayerPrefs.GetInt(RememberMeKey, 0) == 1;
 
             // If they want to be remembered and unity has a saved session token, skip the login screen
@@ -140,6 +141,7 @@ public class AuthManager : MonoBehaviour
     public void LogOutPlayer()
     {
         ClearRememberMe();
+        NetworkManager.Singleton.SceneManager.LoadScene("LoginRegister", LoadSceneMode.Single);
         Debug.Log("Player logged out and cached credentials cleared.");
     }
 }

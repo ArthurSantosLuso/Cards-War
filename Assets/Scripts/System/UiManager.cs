@@ -34,7 +34,7 @@ public class UiManager : MonoBehaviour
         if (turnText != null)
         {
             turnText.gameObject.SetActive(true);
-            turnText.text = $"Turn {turnNumber}";
+            turnText.text = $"{turnNumber}";
         }
     }
 
@@ -43,7 +43,7 @@ public class UiManager : MonoBehaviour
         if (manaText != null)
         {
             manaText.gameObject.SetActive(true);
-            manaText.text = $"Mana: {amount}";
+            manaText.text = $"{amount}";
         }
     }
 
