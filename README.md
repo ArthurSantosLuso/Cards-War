@@ -656,4 +656,4 @@ Videos das aulas de Redes 2026
 
 - <https://www.youtube.com/@diogoandrade9588/videos>
 
-Foi utilizado durante o projeto o uso de ferramentas de AI para correção de estrutura textual e de código. Também foi utilizado para pesquisas.
+Foi utilizado durante o projeto o uso de ferramentas de AI para correção de estrutura textual e de código. Também foi utilizado para fortalecer a pesquisas de técnicas de redes, como para o host/join game.
