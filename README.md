@@ -482,4 +482,157 @@ public void SetupServer(int hp, int atk, int cardId, int effectId, int owner, Gr
 
 O sprite da carta foi um caso chato. Sprites não podem viajar pela rede, por isso apenas o cardId é sincronizado. Cada cliente resolve o sprite de forma independente consultando o seu `PlayableCards` local, que é um `ScriptableObject` já carregado em memória em todas os clientes.
 
-Falta falar dos efeitos, login/registro e host/join.
+## Sistema de Login e Registro
+
+O jogo utiliza de um sistema de autenticação com `username` e `password`. Optei por utilizar os servições de autenticação do Unity - `Unity.Services.Authentication` - para gerir esse processo em meu projeto.
+
+Esse tópico é dividido em três partes principais:
+
+- Registro e Autenticação
+- Sistema de "Lembrar-me" (Remember Me)
+- Encerramento de sessão
+
+### Registro e Autenticação
+
+O jogador com uma interface simples onde introduz as suas credenciais. O script `AuthManager.cs` recolhe esses dados e comunica diretamente com o backend do Unity. O registro é feito através de um botão especifico.
+
+```c#
+public async void SignInPlayer()
+{
+    string username = usernameField.text;
+    string password = passwordField.text;
+
+    try
+    {
+        await AuthenticationService.Instance.SignInWithUsernamePasswordAsync(username, password);
+
+        // Save the remember me preference
+        HandleRememberMePreference();
+
+        // Go to next scene
+        SceneManager.LoadScene(1);
+    }
+    catch (AuthenticationException ex)
+    {
+        Debug.LogError($"Sign In Failed: {ex.Message}");
+    }
+    catch (RequestFailedException ex)
+    {
+        Debug.LogError($"Network/Request Failed: {ex.Message}");
+    }
+}
+```
+
+O método para registro - `SignUpPlayer` segue a mesma lógica estrutural, mas invoca o método `SignUpWithUsernamePasswordAsync`. Caso as credenciais sejam válidadas e a conta seja criada ou autenticada com sucesso, o jogador é redirecionado para o menu principal do jogo.
+
+### Sistema de "Lembra-me"
+
+Foi adicionado uma opção de "Remember Me" no jogo. Quando o jogador escolhe esse opção, a preferência é guardada localmente através de `PlayerPrefs`.
+
+Sempre que o jogo inicia no método `Start()`, o script verifica se o utilizador guardou seu login e se o Unity ainda possui o token da sessão na cache. Se isso for verdadeiro, o login é feito automaticamente e o jogador é logo redirecionado para o menu principal.
+
+```c#
+async void Start()
+{
+    try
+    {
+        await UnityServices.InitializeAsync();
+        Debug.Log("Unity services Initialized successfully.");
+
+        // Check if the player previously checked "Remember me"
+        bool shouldRemember = PlayerPrefs.GetInt(RememberMeKey, 0) == 1;
+
+        // If they want to be remembered and unity has a saved session token, skip the login screen
+        if (shouldRemember && AuthenticationService.Instance.SessionTokenExists)
+        {
+            await AutoSignInWithToken();
+        }
+    }
+    catch (Exception e)
+    {
+        Debug.LogError($"Unity Services failed to initialize: {e.Message}");
+    }
+}
+```
+
+### Encerramento de Sessão
+
+O processo de logout limpa as credenciais guardadas localmente do jogador. O método `LogOutPlayer()` apaga as `PlayerPrefs`, limpa as credenciais ativas no serviço do Unity e também apaga ligações de rede ativas no `NetworkManager.cs` antes de mandar o jogador para o menu principal.
+
+## Sistema de Host e Join em partidas
+
+Para que dois jogadores pudessem jogar um contra o outro, implementei um sistema de Lobbies que suporta tanto redes locais (LAN) e conexões pela internet através dos servidores de Relay do Unity, `Unity.Services.Relay`. A lógica de interface está toda centralizada no script `LobbyUI.cs` e a configuração da rede é gerida pelo `NetworkSetup.cs`.
+
+Esse tópico vai ser dividio em três partes:
+
+- Host
+- Join
+- Sincronização e Transição de Cena
+
+### Host
+
+Quando um jogador aloja um jogo, o sistema ativa os componentes de `NetworkManager`. Dependendo do modo de rede, o jogo gera um código único que é preciso ser partilhado com o outro jogador. Se estiver em modo Relay, solicida uma alocação de servidores do Unity, se estiver em modo LAN, converte o endereço de IP e o porto em um código para servir de código.
+
+```c#
+if (isRelay)
+{
+    var allocationTask = CreateAllocationAsync(maxPlayers);
+    yield return new WaitUntil(() => allocationTask.IsCompleted);
+    
+}
+if (!isRelay)
+{
+    string ip = transport.ConnectionData.Address;
+    ushort port = transport.ConnectionData.Port;
+    string raw = $"{ip}:{port}";
+    byte[] bytes = System.Text.Encoding.UTF8.GetBytes(raw);
+    CurrentJoinCode = System.Convert.ToBase64String(bytes)
+        .Replace("+", "A").Replace("/", "B").Replace("=", "").ToUpper();
+    IsHostReady = true;
+}
+```
+
+O método `StartHost()` inicializa o servidor local e começa esperar por conexões de outros jogadores.
+
+### Join
+
+O `NetworkSetup.cs` avalia o cenário: se a partida for Relay, liga-se à alocação usando o código. Se for uma ligação de LAN, traduz o código para extrair o IP e porto do servidor.
+
+```c#
+if (!isRelay)
+{
+    string padded = joinCode.Replace("A", "+").Replace("B", "/");
+    int mod4 = padded.Length % 4;
+    if (mod4 > 0) padded += new string('=', 4 - mod4);
+    byte[] bytes = System.Convert.FromBase64String(padded);
+    string raw = System.Text.Encoding.UTF8.GetString(bytes);
+    string[] parts = raw.Split(':');
+    transport.SetConnectionData(parts[0], ushort.Parse(parts[1]));
+}
+```
+
+Após o setup inicial, o método `StartClient()` tenta estabelecer a ligação. Existe um feedback visal caso erros aconteçam, tratados pelo `LobbyUI.cs`.
+
+### Sincronização e Transição de Cena
+
+A parte final da conecção é controlado por uma coroutine no `LobbyUI.cs`. O host espera até detectar 2 jogadores conectados ao `NetworkManager`.
+
+```c#
+while (NetworkManager.Singleton.ConnectedClients.Count < 2)
+{
+    elapsed += Time.deltaTime;
+    if (elapsed >= lobbyTimeout)
+    {
+        hostStatusText.text = "No player joined. Try again.";
+        yield break;
+    }
+    yield return null;
+}
+
+// Only the host loads - Netcode syncs the client automatically
+NetworkManager.Singleton.SceneManager.LoadScene("GameScene", LoadSceneMode.Single);
+```
+
+Assim que os jogadores conectarem-se, O host invoca o carregamento da scene do jogo.
+
+Falta falar dos efeitos
