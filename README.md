@@ -659,6 +659,12 @@ Tutorial de login
 
 - <https://www.youtube.com/watch?v=oqi9xsJZb5A>
 
+Leitura para saber mais sobre Unity + Redes
+
+- <https://docs.unity3d.com/Packages/com.unity.netcode.gameobjects@2.5/manual/components/core/networkmanager.html>
+
+- <https://learn.unity.com/tutorial/get-started-with-netcode-for-gameobjects>
+
 Videos das aulas de Redes 2026
 
 - <https://www.youtube.com/@diogoandrade9588/videos>
