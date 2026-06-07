@@ -22,7 +22,7 @@ O design do jogo é simples e consiste em:
 - Cada jogador inicia com:
   - 20 HP
   - 4 cartas na mão
-  - 4 cartas no baralho
+  - 20 cartas no baralho
   - 2 Mana
 - Cada jogador possui 4 terrenos
   - Ao selecionar uma carta e um terreno, o jogador coloca a carta no terreno.
@@ -42,7 +42,7 @@ O design do jogo é simples e consiste em:
   - Durante o turno do oponente, o jogador pode apenas visualizar as suas cartas enquanto espera que o turno termine.
   - No fim de ambos os turnos, as unidades causam o respetivo dano à unidade inimiga que está na mesma linha (com exceção de uma carta com o efeito especial de atacar todas as unidades).
   - No caso de não existirem unidades na linha, a unidade causa dano diretamente ao jogador inimigo, diminuindo o seu HP.
-  - No início de um novo Round, ambos os jogadores recebem 2 de mana e X cartas até completarem 4 cartas na mão.
+  - No início de um novo Round, ambos os jogadores recebem 2 de mana e 1 carta.
 
 Aqui segue uma tabela de todas unidades com suas informações.
 
@@ -641,8 +641,9 @@ Assim que os jogadores conectarem-se, O host invoca o carregamento da scene do j
   <img src="Images/DiagramaDeRede.png" alt="CardsWarGif_InitialSection" width="600">
 </p>
 
-## Referências
+## Referências e Arte
 
+Toda arte do jogo foi feita pela Cátia Nascimento a22404090.
 
 Tutotial inicialmente utilizado para sistema de grid:
 
