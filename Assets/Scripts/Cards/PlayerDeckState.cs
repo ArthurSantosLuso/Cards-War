@@ -8,5 +8,5 @@ public class PlayerDeckState
     public int TotalDraw = 0;
 
     public const int MAX_HAND_SIZE = 4;
-    public const int MAX_TOTAL_DRAWS = 8;
+    public const int MAX_TOTAL_DRAWS = 20;
 }
