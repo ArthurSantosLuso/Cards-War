@@ -641,6 +641,12 @@ Assim que os jogadores conectarem-se, O host invoca o carregamento da scene do j
   <img src="Images/DiagramaDeRede.png" alt="CardsWarGif_InitialSection" width="600">
 </p>
 
+## Problemas Conhecidos
+
+- Se o jogador sair de sua conta e entra com outra ou a mesma, ao entrar em uma partida o seu player não é instanciado.
+
+- Ao tentar fazer login sem o "Remember Me" não funciona.
+
 ## Referências e Arte
 
 Toda arte do jogo foi feita pela Cátia Nascimento a22404090.
