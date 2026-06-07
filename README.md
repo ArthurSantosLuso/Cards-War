@@ -651,7 +651,7 @@ Assim que os jogadores conectarem-se, O host invoca o carregamento da scene do j
 
 Toda arte do jogo foi feita pela Cátia Nascimento a22404090.
 
-Tutotial inicialmente utilizado para sistema de grid:
+Tutorial inicialmente utilizado para sistema de grid:
 
 - <https://www.youtube.com/watch?v=l0emsAHIBjU&list=PLcRSafycjWFepsLiAHxxi8D_5GGvu6arf>
 
