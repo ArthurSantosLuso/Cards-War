@@ -1696,6 +1696,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AuthManager
   usernameField: {fileID: 1637265327}
   passwordField: {fileID: 85581003}
+  rememberMeToggle: {fileID: 44350182}
 --- !u!4 &1288559018
 Transform:
   m_ObjectHideFlags: 0
